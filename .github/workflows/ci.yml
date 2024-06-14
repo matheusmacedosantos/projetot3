@@ -1,58 +1,37 @@
-name: Sails Test Workflow
+name: CI
 
-on:
-  push:
-    branches:
-      - develop
-  pull_request:
-    branches:
-      - develop
+on: [push, pull_request]
 
 jobs:
-  checkout-code:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v2
 
-  install-dependencies:
-    needs: checkout-code
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Install dependencies
-        run: npm new
-
-  run-tests:
-    needs: checkout-code
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Run tests
-        run: npm test
-
-  upload-test-results:
-    needs: run-tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Run tests
-        run: npm test
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
         with:
-          name: test-results
-          path: incorrect-path/test-results
+          node-version: "16"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build the application
+        run: npm run build
+
+      - name: Run Dependabot
+        uses: dependabot/dependabot-core@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify packages
+        run: npm audit
+
+      - name: Run tests
+        run: npm test
+
+      - name: Final confirmation
+        if: success()
+        run: echo "Success!"
